@@ -1,8 +1,11 @@
 CXXFLAGS=--std=c++11 -Iinclude
 
+all: machin zeta utest vtest
+
 machin: mach0/machin.o mach0/main.o
 	$(CXX) -o $@ $^
-
+zeta: zeta0/zeta0.o zeta0/main.o
+	$(CXX) -o $@ $^
 
 zeta_unit: zeta0/unit.o zeta0/zeta0.o
 	$(CXX) -o $@ $^

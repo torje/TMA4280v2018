@@ -1,1 +1,1 @@
-double zetas2( int i );
+double zetas2( double i );

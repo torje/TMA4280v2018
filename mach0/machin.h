@@ -1,1 +1,1 @@
-double machin( double x, int i);
+double machin( double x, double i);

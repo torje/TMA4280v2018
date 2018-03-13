@@ -45,3 +45,10 @@ public:
         return DoubleRangeIterator(_end,_increment);
     }
 };
+class DoubleMemRange{
+        double *_start, *_end;
+    public:
+        DoubleMemRange( double * start,double*end):_start(start), _end(end){}
+        double * begin() const{return _start;};
+        double * end() const {return _end;};
+};
