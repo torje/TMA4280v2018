@@ -29,7 +29,7 @@ int main(int argc, char  *argv[]) {
                 gnums[num.first] = num.second;
             }
         }
-        MPI_Scatter(gnums, glength,MPI_DOUBLE, nums,length, MPI_DOUBLE,0,MPI_COMM_WORLD);
+        MPI_Scatter(gnums, length,MPI_DOUBLE, nums,length, MPI_DOUBLE,0,MPI_COMM_WORLD);
         double sum = node_function(nums,length);
         cout << "Node: "<< world_rank<< "sum: "<< sum<< endl;
         cout << "Node: "<< world_rank<< "sqrt(6*sum): "<< sqrt(6*sum)<<endl;
