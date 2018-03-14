@@ -14,23 +14,27 @@ int main(int argc, char  *argv[]) {
 
     int world_rank;
     MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
-    //cout << world_size<< endl;
-    //cout << world_rank<< endl;
     cout << argv[1]<<endl;
     if ( argc == 2 ){
         int glength = stoi(argv[1]);
         int length = glength/world_size;
-        cout << "lenght and glength is consistent: "<<(length*world_size == glength)<<endl;
         double *gnums = nullptr;
         double *nums = new double[length];
         if ( world_rank == 0){
             gnums = new double[glength];
-            for ( auto num :  IntDoubleRange(0,length,1,1.0,201.0,1.0)){
+            for ( auto num :  IntDoubleRange(0,glength,1,1.0,201.0,1.0)){
                 gnums[num.first] = num.second;
             }
         }
         MPI_Scatter(gnums, length,MPI_DOUBLE, nums,length, MPI_DOUBLE,0,MPI_COMM_WORLD);
         double sum = node_function(nums,length);
+        MPI_Gather(&sum,1,MPI_DOUBLE,gnums,1,MPI_DOUBLE,0,MPI_COMM_WORLD);
+        if ( 0 == world_rank){
+            sum = 0;
+            for ( auto i : IntRange(0,world_size)){
+                sum += gnums[i];
+            }
+        }
         cout << "Node: "<< world_rank<< "sum: "<< sum<< endl;
         cout << "Node: "<< world_rank<< "sqrt(6*sum): "<< sqrt(6*sum)<<endl;
         MPI_Finalize();
@@ -39,7 +43,7 @@ int main(int argc, char  *argv[]) {
     }else{
         cout << "no length specified, exiting"<< endl;
         MPI_Finalize();
-        exit(1);
+        exit(0);
     }
 
 }
