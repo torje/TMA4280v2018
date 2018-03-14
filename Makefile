@@ -1,7 +1,7 @@
 CXXFLAGS=--std=c++11 -Iinclude -O2
 CXX=mpic++
 CXXLFLAGS=-O2 -flto
-all: utest vtest test
+all: utest vtest test openmp mpi hybrid
 
 test: machin zeta
 	./machin 16777216
@@ -33,6 +33,7 @@ zeta1_prog: zeta1/main.o zeta1/node_function.o zeta0/zeta0.o
 	$(CXX) $(CXXLFLAGS) -o $@ $^
 mach1_prog: mach1/main.o mach1/node_function.o mach0/machin.o
 	$(CXX) $(CXXLFLAGS) -o $@ $^
+mpi: zeta1_prog mach1_prog
 
 zeta2/main_omp.o: zeta2/main.cpp
 	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<

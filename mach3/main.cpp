@@ -39,7 +39,7 @@ int main(int argc, char  *argv[]) {
         MPI_Finalize();
         return 0;
     }else{
-        if ( 0==world_rank ){
+        if ( 0 == world_rank ){
             cout << "invovation: " << argv[0] << " <steps>"<< endl;
         }
         MPI_Finalize();
