@@ -45,10 +45,18 @@ mach2/main_omp.o: mach2/main.cpp
 	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<
 mach2/node_function_omp.o:mach2/node_function.cpp mach2/node_function.h
 	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<
-mach0/mach0_omp.o: mach0/machin.cpp mach0/machin.h
+mach2_prog: mach2/main_omp.o mach2/node_function_omp.o mach0/mach0.o
+	$(CXX) -flto -O2 -fopenmp -o $@ $^
+
+zeta3/main_omp.o: zeta3/main.cpp
 	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<
-mach2_prog: mach2/main_omp.o mach2/node_function_omp.o mach0/mach0_omp.o
+zeta3_prog: zeta3/main_omp.o zeta2/node_function_omp.o zeta0/zeta0.o
+	$(CXX) -flto -O2 -fopenmp -o $@ $^
+
+mach3/main_omp.o: mach3/main.cpp
+	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<
+mach3_prog: mach3/main_omp.o mach2/node_function_omp.o mach0/machin.o
 	$(CXX) -flto -O2 -fopenmp -o $@ $^
 
 .PHONY clean:
-	rm -rf a.out *.o
+	rm a.out *.o mach1_prog mach2_prog machin machin_unit machinverification zeta zeta1_prog zeta2_prog zeta3_prog zeta_unit zetaverification mach0/*.o mach1/*.o mach2/*.o mach3/*.o zeta0/*.o zeta1/*.o zeta2/*.o zeta3/*.o

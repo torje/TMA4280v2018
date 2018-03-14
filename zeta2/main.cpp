@@ -19,7 +19,7 @@ int main(int argc, char  *argv[]) {
     return 0;
 
     }else{
-        cout << "no length specified, exiting"<< endl;
+        cout << "invovation: " << argv[0] << "<steps>"<< endl;
         exit(0);
     }
 
