@@ -1,7 +1,10 @@
 CXXFLAGS=--std=c++11 -Iinclude
+CXX=mpic++
+all: utest vtest test
 
-all: machin zeta utest vtest
-
+test: machin zeta
+	./machin 16777216
+	./zeta 16777216 
 machin: mach0/machin.o mach0/main.o
 	$(CXX) -o $@ $^
 zeta: zeta0/zeta0.o zeta0/main.o
