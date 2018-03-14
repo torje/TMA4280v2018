@@ -31,8 +31,8 @@ int main(int argc, char  *argv[]) {
         }
         MPI_Scatter(gnums, glength,MPI_DOUBLE, nums,glength, MPI_DOUBLE,0,MPI_COMM_WORLD);
         double sum = node_function(nums,length);
-        cout << "sum: "<< sum<< endl;
-        cout << "sqrt(6*sum): "<< sqrt(6*sum)<<endl;
+        cout << "Node: "<< world_rank<< "sum: "<< sum<< endl;
+        cout << "Node: "<< world_rank<< "sqrt(6*sum): "<< sqrt(6*sum)<<endl;
         MPI_Finalize();
         return 0;
 
