@@ -14,7 +14,7 @@ int main(int argc, const char *const* argv){
         exit(1);
     }
     double * data = new double[length];
-    for ( auto i : IntRange(0,length)) {
+    for (size_t i = 0; i < length; i++) {
         data[i] = i+1;
     }
     double sum = 0 ;

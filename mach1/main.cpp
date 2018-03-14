@@ -33,8 +33,9 @@ int main(int argc, char  *argv[]) {
             for ( auto i : IntRange(0,world_size)){
                 sum += gnums[i];
             }
+            cout << "π - π_estimate: " <<M_PI- 4*sum << endl;
         }
-        cout << "π - π_estimate: " << M_PI - sqrt(6*sum)<< endl;
+
         MPI_Finalize();
         return 0;
 
