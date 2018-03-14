@@ -23,6 +23,8 @@ vtest: machinverification zetaverification
 	./machinverification
 	./zetaverification
 
+zeta1_prog: zeta1/main.o zeta1/node_function.o zeta0/zeta0.o
+	$(CXX) -o $@ $^
 
 .PHONY clean:
 	rm -rf a.out *.o

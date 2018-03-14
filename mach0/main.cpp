@@ -6,15 +6,21 @@
 using namespace std;
 
 int main(int argc, const char *const* argv){
-    double sum = 0 ;
-    int maxNum = 1<<24;
-    double *parts = new double[maxNum]{};
-    for ( auto i : IntRange(1,maxNum) ) {
-        double s = 4 * machin( 1/5., i ) - machin(1/239.,i);
-        parts[i] = s;
+    int length;
+    if ( argc == 2 ){
+        length = stoi(argv[1]);
+    }else {
+        cout << "no length specified, exiting";
+        exit(1);
     }
-    for ( auto si : DoubleMemRange( parts, parts+maxNum )){
-        sum+=si;
+    double * data = new double[length];
+    for ( auto i : IntRange(0,length)) {
+        data[i] = i+1;
+    }
+    double sum = 0 ;
+    double *parts = new double[length]{};
+    for ( auto i : DoubleMemRange(data,data+length) ) {
+        sum += 4 * machin( 1/5., i ) - machin(1/239.,i);
     }
     cout << "sum: "<< sum<< endl;
     cout << "4*sum: "<< 4*sum<<endl;
