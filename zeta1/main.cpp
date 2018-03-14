@@ -14,8 +14,8 @@ int main(int argc, char  *argv[]) {
 
     int world_rank;
     MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
-    cout << world_size<< endl;
-    cout << world_rank<< endl;
+    //cout << world_size<< endl;
+    //cout << world_rank<< endl;
     cout << argv[1]<<endl;
     if ( argc == 2 ){
         int glength = stoi(argv[1]);
