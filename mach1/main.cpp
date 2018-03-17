@@ -14,6 +14,9 @@ int main(int argc, char  *argv[]) {
 
     int world_rank;
     MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
+    if ( 0 == world_rank ){
+	system("date");
+    }
     if ( argc == 2 ){
         int glength = stoi(argv[1]);
         int length = glength/world_size;
@@ -33,6 +36,7 @@ int main(int argc, char  *argv[]) {
             for ( auto i : IntRange(0,world_size)){
                 sum += gnums[i];
             }
+	    system("date");
             cout << "π - π_estimate: " <<M_PI- 4*sum << endl;
         }
 
