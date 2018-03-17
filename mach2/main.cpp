@@ -7,7 +7,8 @@
 using namespace std;
 int main(int argc, char  *argv[]) {
     if ( argc == 2 ){
-        omp_set_num_threads(4);
+	system("date");
+        cout << omp_get_num_threads()<<endl;
         int length = stoi(argv[1]);
         double *nums = new double[length];
         #pragma omp parallel for
@@ -15,6 +16,7 @@ int main(int argc, char  *argv[]) {
             nums[i] = i+1;
         }
         double sum = node_function(nums,length);
+	system("date");
         cout << "π - π_estimate: " <<M_PI- 4*sum << endl;
     return 0;
 

@@ -11,6 +11,9 @@ int main(int argc, char  *argv[]) {
     MPI_Comm_size( MPI_COMM_WORLD, &world_size );
     int world_rank;
     MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
+    if ( 0 == world_rank ){
+	system("date");
+    }
     if ( argc == 2 ){
         int glength = stoi(argv[1]);
         int length = glength/world_size;
@@ -30,15 +33,18 @@ int main(int argc, char  *argv[]) {
             for ( auto i : IntRange(0,world_size)){
                 sum += gnums[i];
             }
-            cout << "π - π_estimate: " << M_PI - sqrt(6*sum)<< endl;
-        }
-        MPI_Finalize();
-        return 0;
+	    if ( 0 == world_rank ){
+		    system("date");
+	    }
+	    cout << "π - π_estimate: " << M_PI - sqrt(6*sum)<< endl;
+	}
+	MPI_Finalize();
+	return 0;
 
     }else{
-        cout << "no length specified, exiting"<< endl;
-        MPI_Finalize();
-        exit(0);
+	    cout << "no length specified, exiting"<< endl;
+	    MPI_Finalize();
+	    exit(0);
     }
 
 }
