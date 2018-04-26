@@ -17,7 +17,7 @@ public:
 class IntRange{
     int start,endpoint;
 public:
-    IntRange(int endpoint) : endpoint(endpoint){
+    IntRange(int endpoint) : start(0), endpoint(endpoint){
     }
     IntRange(int start, int endpoint) : start(start),endpoint(endpoint){}
     IntRangeIterator begin()const{return IntRangeIterator(start);}
