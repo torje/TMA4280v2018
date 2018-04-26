@@ -13,7 +13,8 @@ class Matrix{
     MPICom mpicom;
     size_t height_offset = 0;
     size_t local_height = 0;
-    size_t height = 0 , width = 0;
+    size_t height = 0;
+    size_t width = 0;
     double * data = nullptr;
 public:
     Matrix(MPICom mpicom, size_t height, size_t width ) : mpicom(mpicom),height(height),width(width){
@@ -21,8 +22,6 @@ public:
             height_offset = (height / mpicom.nprocs)*mpicom.rank;
             local_height = height / mpicom.nprocs;
             data = new double[local_height*width]{};
-            //MPI_Type_vector(mpicom.nprocs, width/mpicom.nprocs, width, MPI_DOUBLE, &sendtype);
-            //MPI_Type_commit(&sendtype);
         }else{
             this->height = 0;
             this->width = 0;
@@ -30,6 +29,7 @@ public:
         }
     }
     Matrix(MPICom mpicom, size_t height, size_t width, std::function<double(double,double)> populate ) : Matrix(mpicom,height,width){
+#pragma omp parallel for
         for (size_t i = height_offset; i < height_offset+local_height; i++) {
             for (size_t j = 0; j < width; j++) {
                 (*this)[i][j] = populate( i+1,j+1);
@@ -38,6 +38,22 @@ public:
     }
     Matrix( const Matrix & matrix):Matrix(matrix.mpicom,matrix.height,matrix.width){
         memcpy( data, matrix.data, sizeof(double)*local_height*width);
+    }
+    Matrix & operator= ( Matrix matrix){
+        swap(mpicom,matrix.mpicom);
+        swap(height,matrix.height);
+        swap(width,matrix.width);
+        swap(local_height,matrix.local_height);
+        swap(data,matrix.data);
+        swap(height_offset,matrix.height_offset);
+    }
+    ~Matrix(){
+        delete [] data;
+        height_offset = 0;
+        local_height = 0;
+        height = 0 ;
+        width = 0;
+        data = nullptr;
     }
     size_t index(size_t row)const{
         return (row - height_offset ) * width;
@@ -49,7 +65,8 @@ public:
         return data+index(row);
     }
     void rowFST() {
-        for ( int i  = height_offset ; i < height_offset+local_height ; i++){
+#pragma omp parallel for
+        for (size_t i = height_offset; i < height_offset+local_height; i++) {
             int width_ = width+1;
             double *scratch = new double[width_*4*4*4];
             int bufferSize = 4*width_;
@@ -58,12 +75,13 @@ public:
         }
     }
     void rowIFST() {
-        for ( int i  = height_offset ; i < height_offset+local_height ; i++){
+#pragma omp parallel for
+        for (size_t i = height_offset; i < height_offset+local_height; i++) {
             int width_ = width+1;
             double *scratch = new double[width_*4];
             int bufferSize = 4*width_;
             fstinv_((*this)[i],&width_,scratch,&bufferSize);
-            //delete [] scratch;
+            delete [] scratch;
         }
     }
     void packForSend(){
@@ -84,23 +102,21 @@ public:
         size_t step = 0;
         size_t j = 0;
         for (size_t j = 0; j < local_height; j++) {
-
             for (size_t i = 0; i < width; i++) {
                 dup.data[j*width+i] = this->data[j+i*local_height];
             }
         }
-
         return dup;
     }
     Matrix transpose()  {
         packForSend();
         Matrix matrix(mpicom,height,width);
         MPI_Alltoall( data, local_height*width/mpicom.nprocs, MPI_DOUBLE, matrix.data, local_height*width/mpicom.nprocs,MPI_DOUBLE,mpicom.comm);
-        //return unpackAfterReceive();
         return matrix.unpackAfterReceive();
     }
 
     void divByDiags( double * diag ){
+#pragma omp parallel for
         for (size_t i = height_offset; i < height_offset+local_height; i++) {
             for (size_t j = 0; j < width; j++) {
                 (*this)[i][j] /= diag[i]+diag[j];
@@ -110,6 +126,7 @@ public:
 
     double max(){
         double max = 0;
+#pragma omp parallel for
         for (size_t i = 0; i < local_height*width; i++) {
             if ( max < abs(data[i]) )
             max = abs(data[i]);

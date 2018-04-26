@@ -1,7 +1,7 @@
 CXXFLAGS=--std=c++11 -I../include -O2 -g
 CXX=mpic++
-#CXXLFLAGS=-O2 -flto -g
-CXXLFLAGS=-g
+CXXLFLAGS=-O2 -flto -fopenmp
+#CXXLFLAGS=-g
 
 all:poisson
 poisson.o: poisson.cpp MpiCom.h matrix.h
@@ -15,3 +15,10 @@ transposetest.o: transposetest.cpp matrix.h MpiCom.h
 
 transposetest: transposetest.o
 	${CXX} ${CXXLFLAGS} $^ -o $@
+
+smalltest: poisson 
+	mpirun -np 4 ./poisson 256 > test256
+	mpirun -np 4 ./poisson 512 > test512
+	mpirun -np 4 ./poisson 1024 > test1024
+	mpirun -np 4 ./poisson 2048 > test2048
+	mpirun -np 4 ./poisson 4096 > test4096
