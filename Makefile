@@ -35,6 +35,9 @@ mach1_prog: mach1/main.o mach1/node_function.o mach0/machin.o
 	$(CXX) $(CXXLFLAGS) -o $@ $^
 mpi: zeta1_prog mach1_prog
 
+reduc_prog: reduc/main.o  mach1/node_function.o mach0/machin.o
+	$(CXX) $(CXXLFLAGS) -o $@ $^
+
 zeta2/main_omp.o: zeta2/main.cpp
 	$(CXX) $(CXXFLAGS) -fopenmp -c -o $@ $<
 zeta2/node_function_omp.o:zeta2/node_function.cpp zeta2/node_function.h
