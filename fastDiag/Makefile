@@ -1,7 +1,7 @@
-CXXFLAGS=--std=c++11 -I../include -O2 -g
+CXXFLAGS=--std=c++11 -I../include -O2 -fopenmp
 CXX=mpic++
 CXXLFLAGS=-O2 -flto -fopenmp
-#CXXLFLAGS=-g
+#CXXLFLAGS=
 
 all:poisson
 poisson.o: poisson.cpp MpiCom.h matrix.h

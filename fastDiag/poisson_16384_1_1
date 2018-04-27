@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -N poisson_16384_1_1
+#PBS -l select=1:ncpus=1:mpiprocs=1
+#PBS -l walltime=00:20:30
+
+module load GCC OpenMPI
+
+cd $PBS_O_WORKDIR
+
+mpirun ./poisson 16384
+
+# Append the job statistics to the std out file
+qstat -f $PBS_JOBID
