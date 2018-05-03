@@ -28,7 +28,7 @@ public:
     bool myturn(size_t i)const{
         return i == rank;
     }
-    void barrier(){
+    void barrier()const{
         if ( MPI_SUCCESS != MPI_Barrier(comm)){
             throw std::string("barrier breakdown!");
         };

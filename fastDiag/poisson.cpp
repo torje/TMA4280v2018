@@ -9,6 +9,7 @@
 #include <string>
 #include <Ranges.h>
 #include <chrono>
+#include <getopt.h>
 #include "MpiCom.h"
 #include "matrix.h"
 
@@ -41,15 +42,29 @@ double rhs(double x, double y) {
 
 int main(int argc, char ** argv){
 	MPICom mpicom(&argc,&argv);
+	int print = false;
+	int option_index = 1;
+	static struct option long_option = {"print",no_argument,&print,1};
+	int res = getopt_long(argc,argv,"",&long_option,&option_index);
+	if ( res != -1){
+		print = true;
+	}
 	using namespace std::chrono;
-	int n = atoi(argv[1]);
+	int n = atoi(argv[argc -1]);
 	int m = n-1;
 	double h = 1.0/n;
 	double * grid = new double [n+1];
 	steady_clock::time_point t[12];
 	auto populate = [h](double y, double x){
-		return h*h*2*(h*y - h*h*y*y + h*x - h*h*x*x);
+		return 0;
+		//return h*h*2*(h*y - h*h*y*y + h*x - h*h*x*x);
 		//return h*h*2*(h*y - h*h*y*y + h*x - h*x*h*x);
+	};
+	auto esinsin = [h](double y, double x){
+		return exp(h*x)*sin(2*M_PI*h*x)*sin(2*M_PI*h*y);
+	};
+	auto sinsin = [h](double y, double x){
+		return h*h*5*M_PI*M_PI*sin(M_PI*h*x)*sin(2*M_PI*h*y);
 	};
 	string timeDescs[11] =
 	{
@@ -73,7 +88,15 @@ int main(int argc, char ** argv){
 		diag[i] = 2.0 * (1.0 - cos((i+1) * M_PI / n));
 	}
 	t[1] = steady_clock::now();
-	Matrix b(mpicom,m,m,populate);
+	Matrix b(mpicom,m,m,sinsin);
+	/*size_t line1 = m*0.49;
+	if ( b.within(line1)){
+		b[line1][line1] = -1;
+	}
+	size_t line2 = m*0.51;
+	if ( b.within(line2)){
+		b[line2][line2] = +1;
+	}*/
 	t[2] = steady_clock::now();
 	b.rowFST();
 	t[3] = steady_clock::now();
@@ -89,13 +112,17 @@ int main(int argc, char ** argv){
 	t[8] = steady_clock::now();
 	b.rowIFST();
 	t[9] = steady_clock::now();
+	//cout << b<< endl;
 	double u_max = b.max();
 	t[10] = steady_clock::now();
-	//ofstream outdata("outdata.py");
-	//outdata <<"import matplotlib.pyplot as plt"<<endl;
-	//outdata << b.toImshow()<<endl;
+	ofstream outdata("outdata.py");
 
-	// Only do the printing and timing on master node. 
+
+	mpicom.barrier();
+
+	if ( print ){
+		b.printImshow(outdata);
+	}
 	if ( mpicom.rank == 0){
 		cout << "Max value: " << u_max<< endl;
 		for (size_t i = 1; i < 11; i++) {

@@ -15,13 +15,17 @@ class Matrix{
     size_t local_height = 0;
     size_t height = 0;
     size_t width = 0;
+    size_t easy_height = 0;
+    size_t easy_width = 0;
     double * data = nullptr;
 public:
     Matrix(MPICom mpicom, size_t height, size_t width ) : mpicom(mpicom),height(height),width(width){
         if ( ( height * width >= width ) && ( height * width >= height ) ) {
-            height_offset = (height / mpicom.nprocs)*mpicom.rank;
-            local_height = height / mpicom.nprocs;
-            data = new double[local_height*width]{};
+            easy_height = ( ( (height-1)/mpicom.nprocs)+1)*mpicom.nprocs;
+            easy_width = ( ( (width-1)/mpicom.nprocs)+1)*mpicom.nprocs;
+            local_height = easy_height / mpicom.nprocs;
+            height_offset = local_height*mpicom.rank;
+            data = new double[local_height*easy_width]{};
         }else{
             this->height = 0;
             this->width = 0;
@@ -29,7 +33,7 @@ public:
         }
     }
     Matrix(MPICom mpicom, size_t height, size_t width, std::function<double(double,double)> populate ) : Matrix(mpicom,height,width){
-#pragma omp parallel for
+        #pragma omp parallel for
         for (size_t i = height_offset; i < height_offset+local_height; i++) {
             for (size_t j = 0; j < width; j++) {
                 (*this)[i][j] = populate( i+1,j+1);
@@ -39,16 +43,20 @@ public:
     Matrix( const Matrix & matrix):Matrix(matrix.mpicom,matrix.height,matrix.width){
         memcpy( data, matrix.data, sizeof(double)*local_height*width);
     }
-    Matrix & operator= ( Matrix matrix){
+    Matrix & operator=( Matrix matrix){
         swap(mpicom,matrix.mpicom);
         swap(height,matrix.height);
         swap(width,matrix.width);
+        swap(easy_height,matrix.easy_height);
+        swap(easy_width,matrix.easy_width);
         swap(local_height,matrix.local_height);
         swap(data,matrix.data);
         swap(height_offset,matrix.height_offset);
     }
     ~Matrix(){
         delete [] data;
+        easy_height = 0;
+        easy_width = 0;
         height_offset = 0;
         local_height = 0;
         height = 0 ;
@@ -56,7 +64,7 @@ public:
         data = nullptr;
     }
     size_t index(size_t row)const{
-        return (row - height_offset ) * width;
+        return (row - height_offset ) * easy_width;
     }
     double * operator[]( size_t row){
         return data+index(row);
@@ -64,18 +72,21 @@ public:
     const double * operator[]( size_t row)const{
         return data+index(row);
     }
+    bool within(size_t a ){
+        return a> height_offset && a < height_offset+local_height ;
+    }
     void rowFST() {
-#pragma omp parallel for
+        #pragma omp parallel for
         for (size_t i = height_offset; i < height_offset+local_height; i++) {
             int width_ = width+1;
-            double *scratch = new double[width_*4*4*4];
+            double *scratch = new double[width_*4];
             int bufferSize = 4*width_;
             fst_((*this)[i],&width_,scratch,&bufferSize);
             delete [] scratch;
         }
     }
     void rowIFST() {
-#pragma omp parallel for
+        #pragma omp parallel for
         for (size_t i = height_offset; i < height_offset+local_height; i++) {
             int width_ = width+1;
             double *scratch = new double[width_*4];
@@ -90,7 +101,7 @@ public:
             size_t sourceDisp = local_height*i;
             size_t destDisp   = local_height*local_height*i;
             for (size_t j = 0; j < local_height; j++) {
-                size_t rowSourceDisp = width*j;
+                size_t rowSourceDisp = easy_width*j;
                 size_t rowDestDisp = local_height*j;
                 memcpy(&dup.data[rowDestDisp+destDisp],&data[rowSourceDisp+sourceDisp], sizeof(double)*local_height);
             }
@@ -103,7 +114,7 @@ public:
         size_t j = 0;
         for (size_t j = 0; j < local_height; j++) {
             for (size_t i = 0; i < width; i++) {
-                dup.data[j*width+i] = this->data[j+i*local_height];
+                dup.data[j*easy_width+i] = this->data[j+i*local_height];
             }
         }
         return dup;
@@ -111,13 +122,13 @@ public:
     Matrix transpose()  {
         packForSend();
         Matrix matrix(mpicom,height,width);
-        MPI_Alltoall( data, local_height*width/mpicom.nprocs, MPI_DOUBLE, matrix.data, local_height*width/mpicom.nprocs,MPI_DOUBLE,mpicom.comm);
+        MPI_Alltoall( data, local_height*easy_width/mpicom.nprocs, MPI_DOUBLE, matrix.data, local_height*easy_width/mpicom.nprocs,MPI_DOUBLE,mpicom.comm);
         return matrix.unpackAfterReceive();
     }
 
     void divByDiags( double * diag ){
-#pragma omp parallel for
-        for (size_t i = height_offset; i < height_offset+local_height; i++) {
+        #pragma omp parallel for
+        for (size_t i = height_offset; i <std::min(height_offset+local_height,height) ; i++) {
             for (size_t j = 0; j < width; j++) {
                 (*this)[i][j] /= diag[i]+diag[j];
             }
@@ -126,18 +137,54 @@ public:
 
     double max(){
         double max = 0;
-#pragma omp parallel for
-        for (size_t i = 0; i < local_height*width; i++) {
-            if ( max < abs(data[i]) )
-            max = abs(data[i]);
+        #pragma omp parallel for
+        for (size_t i = height_offset ; i < std::min(height_offset+local_height,height); i++) {
+            for (size_t j = 0 ; j < width ; j++){
+                if ( max < abs((*this)[i][j]) ){
+                    max = abs((*this)[i][j]);
+                }
+            }
         }
-        MPI_Allreduce(data,&max,1,MPI_DOUBLE,MPI_MAX,mpicom.comm);
-        return max;
+        double allmax;
+        MPI_Allreduce(&max,&allmax,1,MPI_DOUBLE,MPI_MAX,mpicom.comm);
+        return allmax;
     }
-
+    void printImshow(ostream & out)const{
+        if ( mpicom.rank == 0){
+            double h = 1.0/(width+1);
+            out << "import matplotlib.pyplot as plt"<<endl
+            << "import numpy as np"<< endl
+            <<"from matplotlib import cm"<<endl
+            <<"from mpl_toolkits.mplot3d import axes3d"<<endl
+            <<"fig = plt.figure()"<<endl
+            << "xs,ys  = np.meshgrid(np.linspace("<<h<<","<<1-h<<","<<width<<"),np.linspace("<<h<<","<<1-h<<","<<height<<"))"<<endl
+            << "print(xs.shape)"<<endl
+            <<"ax  = fig.add_subplot(111,projection='3d')"<<endl
+            << "try:"<<endl
+            <<"\tax.plot_surface(xs,ys,[";
+            Matrix matrix (mpicom, height,width);
+            out << this->toImshow();
+            for (size_t i = 1; i < mpicom.nprocs; i++) {
+                MPI_Status status;
+                MPI_Recv(matrix.data, local_height*easy_width, MPI_DOUBLE, i,0,mpicom.comm,&status);
+                MPI_Recv(&matrix.height_offset,1,MPI_DOUBLE,i,0,mpicom.comm,&status);
+                string strrep = ","+matrix.toImshow();
+                out << strrep;
+            }
+            out <<"],cmap=cm.coolwarm)"<<endl
+            << "\tax.view_init(30, 45)"<<endl
+            <<"\tplt.show()" <<endl
+            << "except:"<<endl
+            << "\tprint('dieded:',xs)"<<endl;
+        }
+        else{
+            MPI_Send( data,local_height*easy_width, MPI_DOUBLE,0,0,mpicom.comm);
+            MPI_Send(&height_offset,1,MPI_DOUBLE,0,0,mpicom.comm);
+        }
+    }
     std::string toImshow()const{
-        std::string str = "plt.imshow([";
-        for (size_t i = height_offset; i < height_offset+local_height; i++) {
+        std::string str = "";
+        for (size_t i = height_offset; i < std::min(height_offset+local_height,height); i++) {
             str += "[";
             for (size_t j = 0; j < width; j++) {
                 str += std::to_string((*this)[i][j])+",";
@@ -145,15 +192,15 @@ public:
             str.pop_back();
             str += "],";
         }
+
         str.pop_back();
-        str += "])\nplt.show()";
         return str;
     }
 
     std::string toString()const{
         //std::string str = "process:" + to_string(mpicom.rank) + "\n";
-        std::string str = "";
-        for (size_t i = height_offset; i < height_offset+local_height; i++) {
+        std::string str = "p"+to_string(mpicom.rank)+ "size:" +to_string(height)+ " x " +to_string(width);
+        for (size_t i = height_offset; i < std::min(height_offset+local_height,height); i++) {
             str += "[";
             for (size_t j = 0; j < width; j++) {
                 str += std::to_string((*this)[i][j])+" ";

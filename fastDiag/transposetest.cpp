@@ -19,9 +19,11 @@ void foo(int argc, char**argv){
         return y*10+x;
         //return h*h*2*(h*y - h*h*y*y + h*x - h*x*h*x);
     };
-    Matrix b(mpicom,8,8,populate);
+    Matrix b(mpicom,3,3,populate);
     cout << b;
     Matrix bt = b.transpose();
+    mpicom.barrier();
+    cout << endl;
     mpicom.barrier();
     cout << bt;
     mpicom.finalize();
