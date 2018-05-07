@@ -55,6 +55,10 @@ int main(int argc, char ** argv){
 	double h = 1.0/n;
 	double * grid = new double [n+1];
 	steady_clock::time_point t[12];
+	auto solfun = [h](double y, double x){
+		return sin(M_PI*h*x)*sin(2*M_PI*h*y);
+	};
+	Matrix solution(mpicom,m,m,solfun);
 	auto populate = [h](double y, double x){
 		return 0;
 		//return h*h*2*(h*y - h*h*y*y + h*x - h*h*x*x);
@@ -113,6 +117,7 @@ int main(int argc, char ** argv){
 	b.rowIFST();
 	t[9] = steady_clock::now();
 	//cout << b<< endl;
+	b-=solution;
 	double u_max = b.max();
 	t[10] = steady_clock::now();
 	ofstream outdata("outdata.py");
